@@ -485,8 +485,8 @@ int main() {
           (nextCheckpoint - 1 + track.getNumPoints()) % track.getNumPoints());
       vec3<float> p1 = track.getPoint(nextCheckpoint);
       vec3<float> trackDir = p1 - p0;
-      vec3<float> carForward = {_float_cos(car.direction), 0,
-                                -_float_sin(car.direction)};
+      vec3<float> carForward = {(float)fp_cos(fp(car.direction)), 0,
+                                -(float)fp_sin(fp(car.direction))};
       float dot = carForward.x * trackDir.x + carForward.z * trackDir.z;
 
       if (dot < 0) {
