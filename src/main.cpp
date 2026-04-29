@@ -1,3 +1,16 @@
+#if !defined(GINT) && !defined(PRIZM) && !defined(SDL)
+#define PRIZM
+#endif
+
+// Compatibilidad para el editor de código
+#ifndef LCD_WIDTH_PX
+#define LCD_WIDTH_PX 384
+#define LCD_HEIGHT_PX 216
+#define KEY_PRGM_MENU 0
+#define KEY_PRGM_F1 0
+#define KEY_PRGM_EXE 0
+#endif
+
 #include "display.h"
 #include "rasterizer.h"
 #include "time.h"
@@ -6,6 +19,8 @@
 #include "mat4.h"
 #include "rmath.h"
 #include "math.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "car.h"
 #include "track.h"
@@ -26,6 +41,22 @@ mat4 view;
 vec3<float> cameraPos = {0, 0, 0};
 vec3<float> cameraSpeed = {0, 0, 0};
 float cameraAngle = 0;
+
+enum GameState {
+	FREE_ROAM,
+	WAITING_FOR_OPPONENT,
+	COUNTDOWN,
+	RACING,
+	FINISHED
+};
+
+GameState gameState = FREE_ROAM;
+int currentLap = 0;
+int nextCheckpoint = 0;
+float raceCountdown = 0;
+bool isWinner = false;
+bool raceRequested = false;
+bool opponentRaceRequested = false;
 
 #ifdef GINT
 static GALIGNED(32) unsigned char depthBuffer[RENDER_WIDTH*RENDER_HEIGHT];
@@ -131,6 +162,7 @@ int main(){
 			if(!(o & (1 << 4))){
 				Serial_ReadSingle(NULL);
 			} else {
+				opponentRaceRequested = (o & (1 << 5)) != 0;
 				if(Serial_PollRX() >= sizeof(Car)*2){
 					unsigned char enemyCarData[sizeof(Car)*2];
 					Serial_Read(enemyCarData, sizeof(Car)*2, NULL);
@@ -149,6 +181,7 @@ int main(){
 				carData[i*2+1] = ((*(((unsigned char*)&car) + i)) & 0x0F);
 			}
 			carData[0] = carData[0] | (1 << 4);
+			if(raceRequested) carData[0] |= (1 << 5);
 			Serial_Write(carData, sizeof(Car)*2);
 		}
 #endif
@@ -191,7 +224,54 @@ int main(){
 			Time::delta = t;
 		}
 
-		car.processInput();
+		if(Input::keyPressed(KEY_F1) && gameState == FREE_ROAM){
+			raceRequested = true;
+			gameState = WAITING_FOR_OPPONENT;
+		}
+
+		if(gameState == WAITING_FOR_OPPONENT){
+			if(opponentRaceRequested){
+				gameState = COUNTDOWN;
+				raceCountdown = 3.0f;
+				currentLap = 0;
+				nextCheckpoint = 0;
+				car.position = {0, 0, 0};
+				car.speed = {0, 0, 0};
+				car.wheelSpeed = 0;
+				car.direction = 0;
+				car.targetDirection = 0;
+			}
+		}
+
+		if(gameState == COUNTDOWN){
+#ifdef PRIZM
+			raceCountdown -= Time::delta / 128.0f;
+#else
+			raceCountdown -= Time::delta / 1000.0f;
+#endif
+			if(raceCountdown <= 0){
+				gameState = RACING;
+			}
+		}
+
+		if(gameState == RACING){
+			vec3<float> cpPos = track.getPoint(nextCheckpoint);
+			if((car.position - cpPos).length2() < 20*20 && track.isInside(car.position)){
+				nextCheckpoint++;
+				if(nextCheckpoint >= track.getNumPoints()){
+					nextCheckpoint = 0;
+					currentLap++;
+					if(currentLap >= 5){
+						gameState = FINISHED;
+						isWinner = true;
+					}
+				}
+			}
+		}
+
+		if(gameState != COUNTDOWN && gameState != FINISHED && gameState != WAITING_FOR_OPPONENT)
+			car.processInput();
+
 		car.update(track.isInside(car.position));
 #ifdef PRIZM
 		enemyCar.update(track.isInside(enemyCar.position));
@@ -277,6 +357,45 @@ int main(){
 #endif
 		Display::drawText(0, DISPLAY_HEIGHT-Display::textHeight, "SPEED: ", newColor(255, 255, 255));
 		Display::drawText(Display::textWidth("SPEED: "), DISPLAY_HEIGHT-Display::textHeight, buffer, newColor(255, 255, 255));
+
+		if(gameState == WAITING_FOR_OPPONENT){
+			Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("WAITING FOR OPPONENT")/2, DISPLAY_HEIGHT/2, "WAITING FOR OPPONENT", newColor(255, 255, 255));
+		}
+
+		if(gameState == COUNTDOWN){
+			int dots = (int)raceCountdown + 1;
+			for(int i = 0; i < 3; i++){
+				Color c = (i < (3 - dots + 1)) ? newColor(255, 0, 0) : newColor(50, 0, 0);
+				Display::fillRect(DISPLAY_WIDTH/2 - 50 + i*40, 50, 20, 20, c);
+			}
+		}
+
+		if(gameState == RACING){
+#ifdef PRIZM
+			itoa(currentLap + 1, (unsigned char*)buffer);
+#else
+			sprintf(buffer, "%d", currentLap + 1);
+#endif
+			Display::drawText(0, 20, "LAP: ", newColor(255, 255, 0));
+			Display::drawText(Display::textWidth("LAP: "), 20, buffer, newColor(255, 255, 0));
+			Display::drawText(Display::textWidth("LAP: ") + Display::textWidth(buffer), 20, "/5", newColor(255, 255, 0));
+		}
+
+		if(gameState == FINISHED){
+			if(isWinner)
+				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("WINNER!")/2, DISPLAY_HEIGHT/2, "WINNER!", newColor(0, 255, 0));
+			else
+				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("FINISHED")/2, DISPLAY_HEIGHT/2, "FINISHED", newColor(255, 255, 255));
+			
+			if(Input::keyPressed(KEY_EXE)){
+				gameState = FREE_ROAM;
+				raceRequested = false;
+			}
+		}
+
+		if(gameState == FREE_ROAM){
+			Display::drawText(0, 20, "F1: CARRERA", newColor(255, 255, 255));
+		}
 
 		Display::show();
 	}

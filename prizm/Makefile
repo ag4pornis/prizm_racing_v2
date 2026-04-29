@@ -19,7 +19,7 @@ include $(FXCGSDK)/toolchain/prizm_rules
 # SOURCES is a list of directories containing source code
 # INCLUDES is a list of directories containing extra header files
 #---------------------------------------------------------------------------------
-TARGET		:=	racing
+TARGET		:=	racing_v2
 BUILD		:=	build
 SOURCES		:=	../src
 DATA		:=	data  
@@ -29,7 +29,7 @@ INCLUDES	:=
 # options for code and add-in generation
 #---------------------------------------------------------------------------------
 
-MKG3AFLAGS := -n basic:racing -i uns:../../resources/icons/unselected.bmp -i sel:../../resources/icons/selected.bmp
+MKG3AFLAGS := -n basic:racing_v2 -i uns:../../resources/icons/unselected.bmp -i sel:../../resources/icons/selected.bmp
 
 # Optional: add -flto to CFLAGS and LDFLAGS to enable link-time optimization
 # (LTO). Doing so will usually allow the compiler to generate much better code

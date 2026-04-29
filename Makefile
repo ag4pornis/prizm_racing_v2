@@ -4,9 +4,9 @@ all: sdl prizm gint
 
 sdl: sdl/racing
 
-prizm: prizm/racing.g3a
+prizm: prizm/racing_v2.g3a
 
-gint: gint/racing_singleplayer.g3a
+gint: gint/racing_v2.g3a
 
 clean:
 	make $(MFLAGS) -C sdl/ clean
@@ -16,29 +16,21 @@ clean:
 sdl/racing: $(SOURCES)
 	make $(MFLAGS) -C sdl/
 
-prizm/racing.g3a: $(SOURCES)
+prizm/racing_v2.g3a: $(SOURCES)
 	make $(MFLAGS) -C prizm/
 
-gint/racing_singleplayer.g3a: $(SOURCES)
+gint/racing_v2.g3a: $(SOURCES)
 	make $(MFLAGS) -C gint/
 
-package: release/racing.zip release/racing.tar.gz release/racing_singleplayer.zip release/racing_singleplayer.tar.gz
+package: release/racing_v2.zip release/racing_v2.tar.gz
 
-release/racing.zip: prizm/racing.g3a
+release/racing_v2.zip: prizm/racing_v2.g3a
 	mkdir -p release
-	zip -j release/racing.zip LICENSE prizm/racing.g3a
+	zip -j release/racing_v2.zip LICENSE prizm/racing_v2.g3a
 
-release/racing.tar.gz: prizm/racing.g3a
+release/racing_v2.tar.gz: prizm/racing_v2.g3a
 	mkdir -p release
-	tar czvf release/racing.tar.gz LICENSE -C prizm racing.g3a
-
-release/racing_singleplayer.zip: gint/racing_singleplayer.g3a
-	mkdir -p release
-	zip -j release/racing_singleplayer.zip LICENSE gint/racing_singleplayer.g3a
-
-release/racing_singleplayer.tar.gz: gint/racing_singleplayer.g3a
-	mkdir -p release
-	tar czvf release/racing_singleplayer.tar.gz LICENSE -C gint racing_singleplayer.g3a
+	tar czvf release/racing_v2.tar.gz LICENSE -C prizm racing_v2.g3a
 
 package-clean:
 	rm release -rf

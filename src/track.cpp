@@ -25,13 +25,13 @@ Track::Track(int numPoints, vec3<float> *points, float width, float tolerance){
 		triangles[i*2] = {
 			{p0, p1, p2},
 			{0, -1, 0},
-			newColor(50, 50, 50),
+			i == 0 ? newColor(200, 200, 200) : newColor(50, 50, 50),
 			{{0,0},{0,0},{0,0}}
 		};
 		triangles[i*2+1] = {
 			{p1, p2, p3},
 			{0, -1, 0},
-			newColor(50, 50, 50),
+			i == 0 ? newColor(200, 200, 200) : newColor(50, 50, 50),
 			{{0,0},{0,0},{0,0}}
 		};
 
