@@ -57,6 +57,8 @@ float raceCountdown = 0;
 bool isWinner = false;
 bool raceRequested = false;
 bool opponentRaceRequested = false;
+bool hasFinished = false;
+bool opponentHasFinished = false;
 
 #ifdef GINT
 static GALIGNED(32) unsigned char depthBuffer[RENDER_WIDTH*RENDER_HEIGHT];
@@ -127,6 +129,14 @@ int main(){
 	}
 	Track track = Track(28, trackPoints, 10, 1.0);
 
+	float minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9;
+	for(int i = 0; i < 28; i++){
+		if(trackPoints[i].x < minX) minX = trackPoints[i].x;
+		if(trackPoints[i].x > maxX) maxX = trackPoints[i].x;
+		if(trackPoints[i].z < minZ) minZ = trackPoints[i].z;
+		if(trackPoints[i].z > maxZ) maxZ = trackPoints[i].z;
+	}
+
 	Rasterizer::init();
 	Rasterizer::setFOV(70);
 
@@ -163,6 +173,7 @@ int main(){
 				Serial_ReadSingle(NULL);
 			} else {
 				opponentRaceRequested = (o & (1 << 5)) != 0;
+				opponentHasFinished = (o & (1 << 6)) != 0;
 				if(Serial_PollRX() >= sizeof(Car)*2){
 					unsigned char enemyCarData[sizeof(Car)*2];
 					Serial_Read(enemyCarData, sizeof(Car)*2, NULL);
@@ -182,6 +193,7 @@ int main(){
 			}
 			carData[0] = carData[0] | (1 << 4);
 			if(raceRequested) carData[0] |= (1 << 5);
+			if(hasFinished) carData[0] |= (1 << 6);
 			Serial_Write(carData, sizeof(Car)*2);
 		}
 #endif
@@ -240,6 +252,8 @@ int main(){
 				car.wheelSpeed = 0;
 				car.direction = 0;
 				car.targetDirection = 0;
+				hasFinished = false;
+				opponentHasFinished = false;
 			}
 		}
 
@@ -255,15 +269,33 @@ int main(){
 		}
 
 		if(gameState == RACING){
-			vec3<float> cpPos = track.getPoint(nextCheckpoint);
-			if((car.position - cpPos).length2() < 20*20 && track.isInside(car.position)){
-				nextCheckpoint++;
-				if(nextCheckpoint >= track.getNumPoints()){
-					nextCheckpoint = 0;
-					currentLap++;
-					if(currentLap >= 5){
-						gameState = FINISHED;
-						isWinner = true;
+			if(opponentHasFinished){
+				gameState = FINISHED;
+				isWinner = false;
+				car.position = {20, 0, 0};
+				car.speed = {0, 0, 0};
+				car.wheelSpeed = 0;
+				car.direction = 0;
+				enemyCar.position = {-20, 0, 0};
+				enemyCar.direction = 0;
+			} else {
+				vec3<float> cpPos = track.getPoint(nextCheckpoint);
+				if((car.position - cpPos).length2() < 20*20 && track.isInside(car.position)){
+					nextCheckpoint++;
+					if(nextCheckpoint >= track.getNumPoints()){
+						nextCheckpoint = 0;
+						currentLap++;
+						if(currentLap >= 5){
+							gameState = FINISHED;
+							isWinner = true;
+							hasFinished = true;
+							car.position = {20, 0, 0};
+							car.speed = {0, 0, 0};
+							car.wheelSpeed = 0;
+							car.direction = 0;
+							enemyCar.position = {-20, 0, 0};
+							enemyCar.direction = 0;
+						}
 					}
 				}
 			}
@@ -379,13 +411,31 @@ int main(){
 			Display::drawText(0, 20, "LAP: ", newColor(255, 255, 0));
 			Display::drawText(Display::textWidth("LAP: "), 20, buffer, newColor(255, 255, 0));
 			Display::drawText(Display::textWidth("LAP: ") + Display::textWidth(buffer), 20, "/5", newColor(255, 255, 0));
+
+			Display::drawText(0, 40, "CP: ", newColor(255, 255, 0));
+			int cpX = Display::textWidth("CP: ");
+#ifdef PRIZM
+			itoa(nextCheckpoint, (unsigned char*)buffer);
+#else
+			sprintf(buffer, "%d", nextCheckpoint);
+#endif
+			Display::drawText(cpX, 40, buffer, newColor(255, 255, 0));
+			cpX += Display::textWidth(buffer);
+			Display::drawText(cpX, 40, "/", newColor(255, 255, 0));
+			cpX += Display::textWidth("/");
+#ifdef PRIZM
+			itoa(track.getNumPoints(), (unsigned char*)buffer);
+#else
+			sprintf(buffer, "%d", track.getNumPoints());
+#endif
+			Display::drawText(cpX, 40, buffer, newColor(255, 255, 0));
 		}
 
 		if(gameState == FINISHED){
 			if(isWinner)
 				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("WINNER!")/2, DISPLAY_HEIGHT/2, "WINNER!", newColor(0, 255, 0));
 			else
-				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("FINISHED")/2, DISPLAY_HEIGHT/2, "FINISHED", newColor(255, 255, 255));
+				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("YOU LOST")/2, DISPLAY_HEIGHT/2, "YOU LOST", newColor(255, 0, 0));
 			
 			if(Input::keyPressed(KEY_EXE)){
 				gameState = FREE_ROAM;
@@ -396,6 +446,29 @@ int main(){
 		if(gameState == FREE_ROAM){
 			Display::drawText(0, 20, "F1: CARRERA", newColor(255, 255, 255));
 		}
+
+		// Minimap
+		int mapW = 60;
+		int mapH = 40;
+		int mapX = DISPLAY_WIDTH - mapW - 10;
+		int mapY = 10;
+		Display::fillRect(mapX - 2, mapY - 2, mapW + 4, mapH + 4, newColor(0, 0, 0)); // Background
+
+		for(int i = 0; i < 28; i++){
+			int x = mapX + (int)((trackPoints[i].x - minX) / (maxX - minX) * mapW);
+			int y = mapY + (int)((trackPoints[i].z - minZ) / (maxZ - minZ) * mapH);
+			Display::drawPoint(x, y, newColor(100, 100, 100));
+		}
+		
+		int pX = mapX + (int)((car.position.x - minX) / (maxX - minX) * mapW);
+		int pY = mapY + (int)((car.position.z - minZ) / (maxZ - minZ) * mapH);
+		Display::fillRect(pX - 1, pY - 1, 3, 3, newColor(255, 255, 255));
+
+#ifdef PRIZM
+		int eX = mapX + (int)((enemyCar.position.x - minX) / (maxX - minX) * mapW);
+		int eY = mapY + (int)((enemyCar.position.z - minZ) / (maxZ - minZ) * mapH);
+		Display::fillRect(eX - 1, eY - 1, 3, 3, newColor(255, 0, 0));
+#endif
 
 		Display::show();
 	}
