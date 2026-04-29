@@ -480,36 +480,6 @@ int main() {
     }
 
     if (gameState == RACING) {
-      // Wrong Way detection with filter
-      vec3<float> p0 = track.getPoint(
-          (nextCheckpoint - 1 + track.getNumPoints()) % track.getNumPoints());
-      vec3<float> p1 = track.getPoint(nextCheckpoint);
-      vec3<float> trackDir = p1 - p0;
-      vec3<float> carForward = {(float)fp_cos(fp(car.direction)), 0,
-                                -(float)fp_sin(fp(car.direction))};
-
-      float mag =
-          1.0f / _isqrt(trackDir.x * trackDir.x + trackDir.z * trackDir.z);
-      float dotNorm = (carForward.x * trackDir.x + carForward.z * trackDir.z) /
-                      (mag + 0.001f);
-
-      static float wrongWayTimer = 0;
-      if (dotNorm < -0.6f && car.speed.length2() > 5.0f) {
-#ifdef PRIZM
-        wrongWayTimer += Time::delta / 128.0f;
-#else
-        wrongWayTimer += Time::delta / 1000.0f;
-#endif
-      } else {
-        wrongWayTimer = 0;
-      }
-
-      if (wrongWayTimer > 0.5f) {
-        Display::drawText(
-            DISPLAY_WIDTH / 2 - Display::textWidth("WRONG WAY") / 2,
-            DISPLAY_HEIGHT / 2 + 40, "WRONG WAY", newColor(255, 0, 0));
-      }
-
 #ifdef PRIZM
       itoa(currentLap + 1, (unsigned char *)buffer);
 #else
