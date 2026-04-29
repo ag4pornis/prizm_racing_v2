@@ -487,9 +487,11 @@ int main() {
       vec3<float> trackDir = p1 - p0;
       vec3<float> carForward = {(float)fp_cos(fp(car.direction)), 0,
                                 -(float)fp_sin(fp(car.direction))};
-      
-      float mag = (float)sqrt(trackDir.x * trackDir.x + trackDir.z * trackDir.z);
-      float dotNorm = (carForward.x * trackDir.x + carForward.z * trackDir.z) / (mag + 0.001f);
+
+      float mag =
+          1.0f / _isqrt(trackDir.x * trackDir.x + trackDir.z * trackDir.z);
+      float dotNorm = (carForward.x * trackDir.x + carForward.z * trackDir.z) /
+                      (mag + 0.001f);
 
       static float wrongWayTimer = 0;
       if (dotNorm < -0.6f && car.speed.length2() > 5.0f) {
