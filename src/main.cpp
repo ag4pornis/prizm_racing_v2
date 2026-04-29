@@ -454,6 +454,17 @@ int main(){
 		}
 
 		if(gameState == RACING){
+			// Wrong Way detection
+			vec3<float> p0 = track.getPoint((nextCheckpoint - 1 + track.getNumPoints()) % track.getNumPoints());
+			vec3<float> p1 = track.getPoint(nextCheckpoint);
+			vec3<float> trackDir = p1 - p0;
+			vec3<float> carForward = {(float)cos(car.direction), 0, -(float)sin(car.direction)};
+			float dot = carForward.x * trackDir.x + carForward.z * trackDir.z;
+			
+			if(dot < 0){
+				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("WRONG WAY")/2, DISPLAY_HEIGHT/2 + 40, "WRONG WAY", newColor(255, 0, 0));
+			}
+
 #ifdef PRIZM
 			itoa(currentLap + 1, (unsigned char*)buffer);
 #else
@@ -589,11 +600,15 @@ int main(){
 		
 		int pX = mapX + (int)((car.position.x - minX) / (maxX - minX) * mapW);
 		int pY = mapY + (int)((car.position.z - minZ) / (maxZ - minZ) * mapH);
+		if(pX < mapX) pX = mapX; if(pX > mapX + mapW) pX = mapX + mapW;
+		if(pY < mapY) pY = mapY; if(pY > mapY + mapH) pY = mapY + mapH;
 		Display::fillRect(pX - 1, pY - 1, 3, 3, newColor(255, 255, 255));
 
 #ifdef PRIZM
 		int eX = mapX + (int)((enemyCar.position.x - minX) / (maxX - minX) * mapW);
 		int eY = mapY + (int)((enemyCar.position.z - minZ) / (maxZ - minZ) * mapH);
+		if(eX < mapX) eX = mapX; if(eX > mapX + mapW) eX = mapX + mapW;
+		if(eY < mapY) eY = mapY; if(eY > mapY + mapH) eY = mapY + mapH;
 		Display::fillRect(eX - 1, eY - 1, 3, 3, newColor(255, 0, 0));
 #endif
 
