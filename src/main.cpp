@@ -21,6 +21,7 @@
 #include "math.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "car.h"
 #include "track.h"
@@ -50,10 +51,20 @@ enum GameState {
 	FINISHED
 };
 
+enum GameMode {
+	MODE_MULTI,
+	MODE_TIME_TRIAL
+};
+
 GameState gameState = FREE_ROAM;
+GameMode gameMode = MODE_MULTI;
 int currentLap = 0;
 int nextCheckpoint = 0;
 float raceCountdown = 0;
+float currentLapTime = 0;
+float totalRaceTime = 0;
+float lapRecords[5] = {0};
+float bestLaps[3] = {1e9, 1e9, 1e9};
 bool isWinner = false;
 bool raceRequested = false;
 bool opponentRaceRequested = false;
@@ -238,7 +249,25 @@ int main(){
 
 		if(Input::keyPressed(KEY_F1) && gameState == FREE_ROAM){
 			raceRequested = true;
+			gameMode = MODE_MULTI;
 			gameState = WAITING_FOR_OPPONENT;
+		}
+
+		if(Input::keyPressed(KEY_F2) && gameState == FREE_ROAM){
+			gameMode = MODE_TIME_TRIAL;
+			gameState = COUNTDOWN;
+			raceCountdown = 3.0f;
+			currentLap = 0;
+			nextCheckpoint = 0;
+			currentLapTime = 0;
+			totalRaceTime = 0;
+			car.position = {0, 0, 0};
+			car.speed = {0, 0, 0};
+			car.wheelSpeed = 0;
+			car.direction = 0;
+			car.targetDirection = 0;
+			hasFinished = false;
+			opponentHasFinished = false;
 		}
 
 		if(gameState == WAITING_FOR_OPPONENT){
@@ -247,6 +276,8 @@ int main(){
 				raceCountdown = 3.0f;
 				currentLap = 0;
 				nextCheckpoint = 0;
+				currentLapTime = 0;
+				totalRaceTime = 0;
 				car.position = {0, 0, 0};
 				car.speed = {0, 0, 0};
 				car.wheelSpeed = 0;
@@ -269,7 +300,15 @@ int main(){
 		}
 
 		if(gameState == RACING){
-			if(opponentHasFinished){
+#ifdef PRIZM
+			currentLapTime += Time::delta / 128.0f;
+			totalRaceTime += Time::delta / 128.0f;
+#else
+			currentLapTime += Time::delta / 1000.0f;
+			totalRaceTime += Time::delta / 1000.0f;
+#endif
+
+			if(gameMode == MODE_MULTI && opponentHasFinished){
 				gameState = FINISHED;
 				isWinner = false;
 				car.position = {20, 0, 0};
@@ -284,6 +323,18 @@ int main(){
 					nextCheckpoint++;
 					if(nextCheckpoint >= track.getNumPoints()){
 						nextCheckpoint = 0;
+						if(currentLap < 5) lapRecords[currentLap] = currentLapTime;
+						
+						// Update session bests
+						for(int i = 0; i < 3; i++){
+							if(currentLapTime < bestLaps[i]){
+								for(int j = 2; j > i; j--) bestLaps[j] = bestLaps[j-1];
+								bestLaps[i] = currentLapTime;
+								break;
+							}
+						}
+						
+						currentLapTime = 0;
 						currentLap++;
 						if(currentLap >= 5){
 							gameState = FINISHED;
@@ -429,13 +480,88 @@ int main(){
 			sprintf(buffer, "%d", track.getNumPoints());
 #endif
 			Display::drawText(cpX, 40, buffer, newColor(255, 255, 0));
+
+			int m = (int)(currentLapTime / 60);
+			float s = currentLapTime - m * 60;
+#ifdef PRIZM
+			itoa(m, (unsigned char*)buffer);
+#else
+			sprintf(buffer, "%d", m);
+#endif
+			Display::drawText(0, 60, "TIME: ", newColor(255, 255, 255));
+			Display::drawText(Display::textWidth("TIME: "), 60, buffer, newColor(255, 255, 255));
+			Display::drawText(Display::textWidth("TIME: ") + Display::textWidth(buffer), 60, ":", newColor(255, 255, 255));
+#ifdef PRIZM
+			if((int)s < 10) strcat(buffer, "0"); // Manual padding for Prizm
+			char sBuf[10];
+			itoa((int)s, (unsigned char*)sBuf);
+			if((int)s < 10){
+				Display::drawText(Display::textWidth("TIME: ") + Display::textWidth("0:"), 60, "0", newColor(255, 255, 255));
+				Display::drawText(Display::textWidth("TIME: ") + Display::textWidth("0:0"), 60, sBuf, newColor(255, 255, 255));
+			} else {
+				Display::drawText(Display::textWidth("TIME: ") + Display::textWidth("0:"), 60, sBuf, newColor(255, 255, 255));
+			}
+#else
+			sprintf(buffer, "%02d", (int)s);
+			Display::drawText(Display::textWidth("TIME: ") + Display::textWidth("0:"), 60, buffer, newColor(255, 255, 255));
+#endif
 		}
 
 		if(gameState == FINISHED){
-			if(isWinner)
-				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("WINNER!")/2, DISPLAY_HEIGHT/2, "WINNER!", newColor(0, 255, 0));
-			else
-				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("YOU LOST")/2, DISPLAY_HEIGHT/2, "YOU LOST", newColor(255, 0, 0));
+			if(gameMode == MODE_MULTI){
+				if(isWinner)
+					Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("WINNER!")/2, 20, "WINNER!", newColor(0, 255, 0));
+				else
+					Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("YOU LOST")/2, 20, "YOU LOST", newColor(255, 0, 0));
+			} else {
+				Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("TIME TRIAL FINISHED")/2, 10, "TIME TRIAL FINISHED", newColor(255, 255, 255));
+			}
+
+			// Show Lap Summary
+			for(int i = 0; i < 5; i++){
+				int lm = (int)(lapRecords[i] / 60);
+				float ls = lapRecords[i] - lm * 60;
+				char lapBuf[32];
+#ifdef PRIZM
+				char sBuf[10];
+				itoa(i+1, (unsigned char*)lapBuf);
+				strcat(lapBuf, ": ");
+				itoa(lm, (unsigned char*)sBuf);
+				strcat(lapBuf, sBuf);
+				strcat(lapBuf, ":");
+				itoa((int)ls, (unsigned char*)sBuf);
+				strcat(lapBuf, sBuf);
+#else
+				sprintf(lapBuf, "LAP %d: %d:%02d", i+1, lm, (int)ls);
+#endif
+				Display::drawText(20, 50 + i*15, lapBuf, newColor(255, 255, 255));
+			}
+
+			// Show session records if in Time Trial
+			if(gameMode == MODE_TIME_TRIAL){
+				Display::drawText(200, 50, "BEST LAPS:", newColor(255, 255, 0));
+				for(int i = 0; i < 3; i++){
+					if(bestLaps[i] > 3600) continue;
+					int bm = (int)(bestLaps[i] / 60);
+					float bs = bestLaps[i] - bm * 60;
+					char bestBuf[32];
+#ifdef PRIZM
+					itoa(i+1, (unsigned char*)bestBuf);
+					strcat(bestBuf, ". ");
+					char sBuf[10];
+					itoa(bm, (unsigned char*)sBuf);
+					strcat(bestBuf, sBuf);
+					strcat(bestBuf, ":");
+					itoa((int)bs, (unsigned char*)sBuf);
+					strcat(bestBuf, sBuf);
+#else
+					sprintf(bestBuf, "%d. %d:%02d", i+1, bm, (int)bs);
+#endif
+					Display::drawText(200, 70 + i*15, bestBuf, newColor(255, 255, 255));
+				}
+			}
+			
+			Display::drawText(DISPLAY_WIDTH/2 - Display::textWidth("PRESS EXE TO RETURN")/2, DISPLAY_HEIGHT - 20, "PRESS EXE TO RETURN", newColor(150, 150, 150));
 			
 			if(Input::keyPressed(KEY_EXE)){
 				gameState = FREE_ROAM;
@@ -444,7 +570,8 @@ int main(){
 		}
 
 		if(gameState == FREE_ROAM){
-			Display::drawText(0, 20, "F1: CARRERA", newColor(255, 255, 255));
+			Display::drawText(0, 20, "F1: CARRERA (MULTI)", newColor(255, 255, 255));
+			Display::drawText(0, 40, "F2: CONTRARRELOJ (SOLO)", newColor(255, 255, 255));
 		}
 
 		// Minimap
