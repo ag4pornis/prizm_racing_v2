@@ -123,16 +123,15 @@ int main() {
       {0, 0, -2},
       {-I_SQRT_2, 0, -1 - I_SQRT_2},
       {-1, 0, -1},
-      {-I_SQRT_2, 0, -1 + I_SQRT_2},
   };
-  for (int i = 0; i < 28; i++) {
+  for (int i = 0; i < 27; i++) {
     trackPoints[i] = trackPoints[i] * 40;
     trackPoints[i].y = 0;
   }
-  Track track = Track(28, trackPoints, 10, 1.0);
+  Track track = Track(27, trackPoints, 10, 1.0);
 
   float minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9;
-  for (int i = 0; i < 28; i++) {
+  for (int i = 0; i < 27; i++) {
     if (trackPoints[i].x < minX)
       minX = trackPoints[i].x;
     if (trackPoints[i].x > maxX)
@@ -290,24 +289,15 @@ int main() {
     }
 
     if (gameState == COUNTDOWN) {
-#ifdef PRIZM
       raceCountdown -= Time::delta / 128.0f;
-#else
-      raceCountdown -= Time::delta / 1000.0f;
-#endif
       if (raceCountdown <= 0) {
         gameState = RACING;
       }
     }
 
     if (gameState == RACING) {
-#ifdef PRIZM
       currentLapTime += Time::delta / 128.0f;
       totalRaceTime += Time::delta / 128.0f;
-#else
-      currentLapTime += Time::delta / 1000.0f;
-      totalRaceTime += Time::delta / 1000.0f;
-#endif
 
       if (gameMode == MODE_MULTI && opponentHasFinished) {
         gameState = FINISHED;
@@ -322,9 +312,13 @@ int main() {
         vec3<float> cpPos = track.getPoint(nextCheckpoint);
         if ((car.position - cpPos).length2() < 20 * 20 &&
             track.isInside(car.position)) {
+          int hitCheckpoint = nextCheckpoint;
           nextCheckpoint++;
           if (nextCheckpoint >= track.getNumPoints()) {
             nextCheckpoint = 0;
+          }
+
+          if (hitCheckpoint == 0) {
             if (currentLap < 5)
               lapRecords[currentLap] = currentLapTime;
 
@@ -361,7 +355,8 @@ int main() {
       car.processInput();
 
     car.update(track.isInside(car.position));
-    enemyCar.update(track.isInside(enemyCar.position));
+    if (gameMode == MODE_MULTI)
+      enemyCar.update(track.isInside(enemyCar.position));
 
     Rasterizer::setFOV(fp(70 + 50.0f / car.speed.i_length()));
 
@@ -428,7 +423,8 @@ int main() {
 
     track.render(view, car.position);
 
-    enemyCar.render(view);
+    if (gameMode == MODE_MULTI)
+      enemyCar.render(view);
     car.render(view);
 
     char buffer[20];
@@ -626,7 +622,7 @@ int main() {
     Display::fillRect(mapX - 2, mapY - 2, mapW + 4, mapH + 4,
                       newColor(0, 0, 0)); // Background
 
-    for (int i = 0; i < 28; i++) {
+    for (int i = 0; i < 27; i++) {
       int x = mapX + (int)((trackPoints[i].x - minX) / (maxX - minX) * mapW);
       int y = mapY + (int)((trackPoints[i].z - minZ) / (maxZ - minZ) * mapH);
       Display::drawPoint(x, y, newColor(100, 100, 100));
@@ -644,17 +640,19 @@ int main() {
       pY = mapY + mapH;
     Display::fillRect(pX - 1, pY - 1, 3, 3, newColor(255, 255, 255));
 
-    int eX = mapX + (int)((enemyCar.position.x - minX) / (maxX - minX) * mapW);
-    int eY = mapY + (int)((enemyCar.position.z - minZ) / (maxZ - minZ) * mapH);
-    if (eX < mapX)
-      eX = mapX;
-    if (eX > mapX + mapW)
-      eX = mapX + mapW;
-    if (eY < mapY)
-      eY = mapY;
-    if (eY > mapY + mapH)
-      eY = mapY + mapH;
-    Display::fillRect(eX - 1, eY - 1, 3, 3, newColor(255, 0, 0));
+    if (gameMode == MODE_MULTI) {
+      int eX = mapX + (int)((enemyCar.position.x - minX) / (maxX - minX) * mapW);
+      int eY = mapY + (int)((enemyCar.position.z - minZ) / (maxZ - minZ) * mapH);
+      if (eX < mapX)
+        eX = mapX;
+      if (eX > mapX + mapW)
+        eX = mapX + mapW;
+      if (eY < mapY)
+        eY = mapY;
+      if (eY > mapY + mapH)
+        eY = mapY + mapH;
+      Display::fillRect(eX - 1, eY - 1, 3, 3, newColor(255, 0, 0));
+    }
 
     Display::show();
   }
