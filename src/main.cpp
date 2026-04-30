@@ -261,7 +261,7 @@ int main() {
       gameState = COUNTDOWN;
       raceCountdown = 3.0f;
       currentLap = 0;
-      nextCheckpoint = 0;
+      nextCheckpoint = 1;
       currentLapTime = 0;
       totalRaceTime = 0;
       car.position = {0, 0, 0};
@@ -278,7 +278,7 @@ int main() {
         gameState = COUNTDOWN;
         raceCountdown = 3.0f;
         currentLap = 0;
-        nextCheckpoint = 0;
+        nextCheckpoint = 1;
         currentLapTime = 0;
         totalRaceTime = 0;
         car.position = {0, 0, 0};
