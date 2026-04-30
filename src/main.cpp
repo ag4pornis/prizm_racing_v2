@@ -147,10 +147,8 @@ int main() {
   Rasterizer::setFOV(70);
 
   Car car = Car();
-#ifdef PRIZM
   Car enemyCar = Car();
   enemyCar.position = {-1000, 0, 0};
-#endif
 
 #ifdef PRIZM
   Serial_Close(1);
@@ -363,9 +361,7 @@ int main() {
       car.processInput();
 
     car.update(track.isInside(car.position));
-#ifdef PRIZM
     enemyCar.update(track.isInside(enemyCar.position));
-#endif
 
     Rasterizer::setFOV(fp(70 + 50.0f / car.speed.i_length()));
 
@@ -432,9 +428,7 @@ int main() {
 
     track.render(view, car.position);
 
-#ifdef PRIZM
     enemyCar.render(view);
-#endif
     car.render(view);
 
     char buffer[20];
@@ -650,7 +644,6 @@ int main() {
       pY = mapY + mapH;
     Display::fillRect(pX - 1, pY - 1, 3, 3, newColor(255, 255, 255));
 
-#ifdef PRIZM
     int eX = mapX + (int)((enemyCar.position.x - minX) / (maxX - minX) * mapW);
     int eY = mapY + (int)((enemyCar.position.z - minZ) / (maxZ - minZ) * mapH);
     if (eX < mapX)
@@ -662,7 +655,6 @@ int main() {
     if (eY > mapY + mapH)
       eY = mapY + mapH;
     Display::fillRect(eX - 1, eY - 1, 3, 3, newColor(255, 0, 0));
-#endif
 
     Display::show();
   }
