@@ -1,75 +1,109 @@
 # prizm_racing
-A 3D, multiplayer racing game for casio fx-CG 10/20/50 calculators
+A 3D, multiplayer racing game for Casio fx-CG 10/20/50 calculators (Prizm series), also playable on PC.
+
+![Language](https://img.shields.io/badge/Language-C++-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## Pictures
 ![Video](resources/video.gif)  
-Now with textures since version 1.4:  
+*Now with textures since version 1.4:*
 ![Newer graphics](resources/picture1.png)
 
 ## Features
-- 3D graphics
-- Simple multiplayer (just connect two calculators)
-- Runs at about 18 FPS
+- **3D Graphics:** Real-time 3D rendering with a custom rasterizer.
+- **Multiplayer:** Compete against a friend by connecting two calculators via the 3-pin cable.
+- **Game Modes:** Free Roam, Multiplayer Race, and Time Trial.
+- **Minimap:** Real-time track overview and player positions.
+- **Cross-platform:** Runs on Casio Prizm (sh3/sh4), gint-compatible calculators, and PC (via SDL2).
+- **Performance:** Runs at approximately 18-20 FPS on original hardware.
+
+## Game Modes
+- **Free Roam:** The default mode. Explore the track and practice your driving.
+- **Multiplayer Race:** Press `F1` to request a race. Once both players accept, a 5-lap race begins.
+- **Time Trial:** Press `F2` to start a solo timed race. Includes session best records and lap timing.
 
 ## Controls
-- Press `up`/`8` to accelerate and `down`/`5` to brake
-- Press `left`/`4` and `right`/`6` to turn
-- Press `menu` to exit
-- If you return from the menu, press any key to continue playing
-- **Tip**: if you use `left` and `right` to turn and `8` to accelerate, you can turn while accelerating
+
+### Casio Prizm / gint
+| Action | Key(s) |
+| :--- | :--- |
+| **Accelerate** | `Up` or `8` |
+| **Brake / Reverse** | `Down` or `5` |
+| **Turn Left** | `Left` or `4` |
+| **Turn Right** | `Right` or `6` |
+| **Start Multi Race** | `F1` |
+| **Start Time Trial** | `F2` |
+| **Return to Menu** | `EXE` (after race) |
+| **Exit Game** | `MENU` |
+
+### PC (SDL2)
+| Action | Key |
+| :--- | :--- |
+| **Accelerate** | `Up Arrow` |
+| **Brake / Reverse** | `Down Arrow` |
+| **Turn Left** | `Left Arrow` |
+| **Turn Right** | `Right Arrow` |
+| **Start Multi Race** | `F1` |
+| **Start Time Trial** | `F2` |
+| **Return to Menu** | `Space` |
+| **Exit Game** | `Tab` or `Esc` |
+
+**Tip**: If you use `left`/`right` to turn and `8` to accelerate on the calculator, you can turn more comfortably while accelerating.
 
 ## How to install
-- Download the zip file from the releases page and extract it to get the `.g3a` file.
-- Connect the calculator via USB and choose the `USB Flash` option (`F1`)
-- Copy the file to the calculator.
-
-## Notes/Bugs
-- In multiplayer, each player sees the other car behind where it really is, so it's possible that both players see themselves finish first.
-- The car's movement isn't totally independent from framerate, so it may be a bit more or less slippery if you're overclocking, underclocking, or using a different calculator.
-- If you connect the cable while one calculator is in the menu, it might start trying to receive files. To avoid this, only connect the cable while the game is running on both calculators.
-
-## Links
-- [Cemetech forum post](https://www.cemetech.net/forum/viewtopic.php?t=18915)
-- [Cemetech archive](http://ceme.tech/DL2319)
+1. Download the latest release from the [releases page](https://github.com/Duarte_Coelho/prizm_racing/releases).
+2. Extract the `.g3a` file.
+3. Connect your calculator to your PC via USB and select `USB Flash` mode (`F1`).
+4. Copy the `.g3a` file to the calculator's storage.
 
 ## How to build
-### prizm sdk version (with multiplayer support)
-#### Linux
-- Set up the Prizm SDK ([PrizmSDK Setup Guide](https://prizm.cemetech.net/Tutorials/PrizmSDK_Setup_Guide/))
-- Set the FXCGSDK environment variable to where you installed libfxcg (`export FXCGSDK=...`), or put the prizm_racing directory in `libfxcg/projects/prizm_racing`.
-- Run `make prizm`
-#### Windows
-- Download the Prizm SDK ([https://github.com/Jonimoose/libfxcg/releases](https://github.com/Jonimoose/libfxcg/releases))
-- Make sure the path to the SDK doesn't contain any spaces
-- Put the `prizm_racing` directory in `PrizmSDK/projects/prizm_racing`
-- Run `..\..\bin\make.exe prizm`
 
-### gint version (singleplayer only)
-This version doesn't support multiplayer yet, but it doesn't have a border.
+### 1. Prizm SDK version (with multiplayer support)
 #### Linux
-- Install gint ([https://gitea.planet-casio.com/Lephenixnoir/gint](https://gitea.planet-casio.com/Lephenixnoir/gint))
-- Install libprof ([https://gitea.planet-casio.com/Lephenixnoir/libprof](https://gitea.planet-casio.com/Lephenixnoir/libprof))
-- Run `make gint`
+- Set up the [PrizmSDK](https://prizm.cemetech.net/Tutorials/PrizmSDK_Setup_Guide/).
+- Set the `FXCGSDK` environment variable to your installation path.
+- Run `make prizm`.
+
+#### Windows
+- Download the [Prizm SDK](https://github.com/Jonimoose/libfxcg/releases).
+- Ensure the path has no spaces.
+- Place the project in `PrizmSDK/projects/prizm_racing`.
+- Run `..\..\bin\make.exe prizm`.
+
+### 2. gint version
+This version uses the modern [gint](https://gitea.planet-casio.com/Lephenixnoir/gint) library.
+- Install `gint` and `libprof`.
+- Run `make gint`.
+
+### 3. PC version (SDL2)
+Useful for testing or playing without a calculator.
+- Install SDL2 development libraries (`libsdl2-dev` on Debian/Ubuntu).
+- Run `make sdl`.
+- The executable will be generated at `sdl/racing`.
 
 ## Technical information
-### 3D rendering
-- All the rendering code is in `src/rasterizer.h`, `src/rasterizer.cpp` and `src/drawTriangle.h`
-- Every triangle is clipped to avoid drawing triangles outside the screen. If a triangle is only partially inside the screen, it's cut in one or two triangles. This doesn't happen with the cones and the car to improve performance.
-- Because the calculator doesn't have a floating point unit (FPU), everything related to rendering uses fixed point numbers (defined in src/fp.h). This caused some issues related to precision, most of which were solved by checking where the floating point calculations were overflowing.
-- To improve performance, the cones that are too far away from the camera aren't drawn.
 
-#### Triangle rasterization (in `src/drawTriangle.h`)
-- The triangles are rasterized using a scan-line algorithm.
-- An (untextured) triangle only has one color, as doing lighting calculations per pixel would be too slow. However, it would be possible to calculate lighting per vertex and then linearly interpolate the color over the triangle.
-- For texturing, we calculate the initial texture coordinate and how much it changes for each pixel, horizontally and vertically. This results in a linear approximation of the texture coordinates, which is not perspective-correct, so it doesn't work well for larger surfaces.
+### 3D Rendering
+- **Custom Rasterizer:** Located in `src/rasterizer.cpp` and `src/drawTriangle.h`.
+- **Clipping:** Triangles are clipped against the screen boundaries to prevent rendering errors.
+- **Fixed-Point Math:** Since the calculator lacks an FPU, all calculations use fixed-point arithmetic (`src/fp.h`) for performance.
+- **Optimization:** Frustum culling is used to skip objects far from the camera.
+- **Rasterization:** Uses a scan-line algorithm.
+    - **Flat Shading:** One color per triangle to maintain FPS.
+    - **Texturing:** Linear approximation of texture coordinates (non-perspective correct, optimized for the calculator's small screen).
 
 ### Multiplayer
-All of the multiplayer code is in `src/main.cpp`
-- When the game starts, a second car is created outside the track.
-- Every frame, each calculator sends its `car` data (position, direction, etc.) to the other one over the 3-pin cable
-- If the calculators are connected, the other one receives the data and updates its `enemyCar`.
-- Otherwise, the enemy car doesn't move, and stays outside the track.
-- To synchronize the byte stream, each byte of data sent is in this format: 0 0 0 X A B C D, where X is 1 if it's the first byte sent in a frame, and A B C D are four bits of car data.
+- **Communication:** Uses the 3-pin serial port (`src/main.cpp`).
+- **Protocol:** A simple custom byte-stream protocol ensures synchronization between devices.
+- **Lag:** The game keeps multiplayer simple by sending raw position data. Minor "ghosting" may occur where opponents appear slightly behind their actual position.
 
-#### Lag
-Improving this would be possible by synchronizing both calculator's clocks to measure the delay, and then trying to predict where the other car will be that time in the future, but I think it's better to keep the multiplayer simple.
+## Notes/Bugs
+- **Framerate dependency:** Car physics are partially linked to framerate. Performance may vary slightly if overclocking.
+- **Connection Tip:** Connect the 3-pin cable only while the game is running on both calculators to avoid the OS attempting to enter file transfer mode.
+
+## Links
+- [Cemetech Forum Post](https://www.cemetech.net/forum/viewtopic.php?t=18915)
+- [Cemetech Archive](http://ceme.tech/DL2319)
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
