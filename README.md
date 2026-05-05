@@ -15,7 +15,7 @@ A 3D, multiplayer racing game for Casio fx-CG 10/20/50 calculators (Prizm series
 - **Game Modes:** Free Roam, Multiplayer Race, and Time Trial.
 - **Minimap:** Real-time track overview and player positions.
 - **Cross-platform:** Runs on Casio Prizm (sh3/sh4), gint-compatible calculators, and PC (via SDL2).
-- **Performance:** Runs at approximately 18-20 FPS on original hardware.
+- **Performance:** Runs at approximately 14-16 FPS on original hardware.
 
 ## Game Modes
 - **Free Roam:** The default mode. Explore the track and practice your driving.
@@ -51,7 +51,7 @@ A 3D, multiplayer racing game for Casio fx-CG 10/20/50 calculators (Prizm series
 **Tip**: If you use `left`/`right` to turn and `8` to accelerate on the calculator, you can turn more comfortably while accelerating.
 
 ## How to install
-1. Download the latest release from the [releases page](https://github.com/Duarte_Coelho/prizm_racing/releases).
+1. Download the latest release from the [releases page](https://github.com/ag4pornis/prizm_racing_v2/releases).
 2. Extract the `.g3a` file.
 3. Connect your calculator to your PC via USB and select `USB Flash` mode (`F1`).
 4. Copy the `.g3a` file to the calculator's storage.
